@@ -273,7 +273,15 @@ QString MainWindow::formatResult(double v) const
 // ---------- 刷新显示 ----------
 void MainWindow::refreshDisplay()
 {
-    ui->lblDisplay->setText(m_display.isEmpty() ? QStringLiteral("0") : m_display);
+    const QString text = m_display.isEmpty() ? QStringLiteral("0") : m_display;
+    ui->lblDisplay->setText(text);
+    // 错误提示或超长数字自动缩小字号，保证完整显示
+    if (m_error)
+        ui->lblDisplay->setStyleSheet(QStringLiteral("font-size: 30px; font-weight: 600; color: #d93025;"));
+    else if (text.length() > 9)
+        ui->lblDisplay->setStyleSheet(QStringLiteral("font-size: 32px; font-weight: 600; color: #1c1e21;"));
+    else
+        ui->lblDisplay->setStyleSheet(QString());   // 恢复样式表中默认的 48px
     // 历史行提示当前状态：如 "12 + "
     if (!m_pendingOperator.isEmpty() && !m_error)
         ui->lblHistory->setText(m_storedOperand + ' ' + m_pendingOperator);
