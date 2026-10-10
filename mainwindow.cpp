@@ -11,6 +11,35 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    setFixedSize(400, 580);
+
+    // ===== 使用样式表(QSS)改善界面：仿手机计算器的浅色圆角风格 =====
+    // 1. 显示区：大字号深色文字；历史行小号灰色
+    // 2. 数字键：白底圆角；运算符键：淡蓝底深蓝字；等号键：深蓝底白字；C 键：淡红底红字
+    setStyleSheet(QStringLiteral(R"(
+        MainWindow { background: #eef1f6; }
+        #lblDisplay {
+            font-size: 44px; font-weight: 600; color: #1c1e21;
+            padding-right: 6px;
+        }
+        #lblHistory {
+            font-size: 15px; color: #90949c; padding-right: 8px;
+        }
+        QPushButton {
+            font-size: 22px; font-weight: 500; color: #1c1e21;
+            border: none; border-radius: 10px; background: #ffffff;
+        }
+        QPushButton:hover   { background: #e4e8ef; }
+        QPushButton:pressed { background: #d3d9e3; }
+        QPushButton#btnAdd, QPushButton#btnSub,
+        QPushButton#btnMul, QPushButton#btnDiv {
+            background: #dfe9ff; color: #2b5fd9; font-size: 26px;
+        }
+        QPushButton#btnEqual { background: #2b5fd9; color: #ffffff; font-size: 26px; }
+        QPushButton#btnEqual:hover  { background: #2453c4; }
+        QPushButton#btnClear { background: #ffe8e8; color: #d93025; }
+    )"));
+
     // 所有按钮统一连接到 onKeyClicked，为鼠标与键盘共用同一处理逻辑做准备
     const auto buttons = findChildren<QPushButton *>();
     for (QPushButton *btn : buttons)
