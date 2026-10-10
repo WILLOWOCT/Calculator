@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QPushButton>
+#include <QSizePolicy>
 #include <QKeyEvent>
 #include <cmath>
 
@@ -12,6 +13,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     setFixedSize(400, 580);
+
+    // ===== 布局修正：显示区高度固定，按钮区垂直撑满窗口 =====
+    // 原问题：QLabel 默认可无限拉伸、QPushButton 垂直方向固定不伸展，
+    // 导致窗口多余的高度全部被显示区占据，按钮挤在下方、上方大片空白。
+    ui->lblHistory->setFixedHeight(26);          // 历史行固定 26px
+    ui->lblDisplay->setFixedHeight(110);         // 主显示行固定 110px
+    const auto allButtons = findChildren<QPushButton *>();   // 所有按钮垂直方向改为可伸展
+    for (QPushButton *btn : allButtons) {
+        QSizePolicy sp = btn->sizePolicy();
+        sp.setVerticalPolicy(QSizePolicy::Expanding);
+        btn->setSizePolicy(sp);
+    }
 
     // ===== 使用样式表(QSS)改善界面：仿手机计算器的浅色圆角风格 =====
     // 1. 显示区：大字号深色文字；历史行小号灰色
