@@ -1,0 +1,19 @@
+# Qt 构建产物
+build*/
+debug/
+release/
+*.o
+*.obj
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+Makefile*
+.qmake.stash
+
+# Qt Creator 用户配置
+*.pro.user
+*.pro.user.*
+
+# 系统文件
+Thumbs.db
+.DS_Store
