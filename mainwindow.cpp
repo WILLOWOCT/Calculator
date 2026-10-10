@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QPushButton>
+#include <QKeyEvent>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -19,6 +20,40 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+// ---------- 键盘事件：映射为与按钮一致的 key 字符串，复用 processKey ----------
+// 鼠标输入与键盘输入完全共用同一套处理逻辑，保证行为一致
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    QString key;
+    switch (event->key()) {
+    case Qt::Key_0:            key = "0";  break;
+    case Qt::Key_1:            key = "1";  break;
+    case Qt::Key_2:            key = "2";  break;
+    case Qt::Key_3:            key = "3";  break;
+    case Qt::Key_4:            key = "4";  break;
+    case Qt::Key_5:            key = "5";  break;
+    case Qt::Key_6:            key = "6";  break;
+    case Qt::Key_7:            key = "7";  break;
+    case Qt::Key_8:            key = "8";  break;
+    case Qt::Key_9:            key = "9";  break;
+    case Qt::Key_Period:
+    case Qt::Key_Comma:        key = ".";  break;
+    case Qt::Key_Plus:         key = "+";  break;
+    case Qt::Key_Minus:        key = "-";  break;
+    case Qt::Key_Asterisk:     key = "×";  break;
+    case Qt::Key_Slash:        key = "÷";  break;
+    case Qt::Key_Enter:
+    case Qt::Key_Return:
+    case Qt::Key_Equal:        key = "=";  break;
+    case Qt::Key_Backspace:    key = "⌫";  break;
+    case Qt::Key_Escape:
+    case Qt::Key_Delete:       key = "C";  break;
+    case Qt::Key_F9:           key = "±";  break;
+    default:                   QMainWindow::keyPressEvent(event); return;
+    }
+    processKey(key);
 }
 
 void MainWindow::onKeyClicked()
