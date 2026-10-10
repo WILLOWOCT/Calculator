@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QPushButton>
+#include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -28,34 +29,176 @@ void MainWindow::onKeyClicked()
     processKey(btn->text());
 }
 
+// ---------- 按键分发：鼠标与键盘共用的统一入口 ----------
 void MainWindow::processKey(const QString &key)
 {
-    if (key >= "0" && key <= "9") {                 // 数字
-        m_display = (m_display == "0") ? key : m_display + key;
-    } else if (key == ".") {                        // 小数点（暂未检查重复）
-        m_display += key;
-    } else if (key == "+" || key == "-" || key == "×" || key == "÷") {
-        m_storedOperand = m_display;                // 保存第一个操作数
-        m_pendingOperator = key;
-        m_display.clear();                          // 等待第二个操作数
-    } else if (key == "=") {
-        if (m_pendingOperator.isEmpty() || m_display.isEmpty())
-            return;
-        double a = m_storedOperand.toDouble();
-        double b = m_display.toDouble();
-        double r = 0;
-        if (m_pendingOperator == "+")  r = a + b;
-        else if (m_pendingOperator == "-") r = a - b;
-        else if (m_pendingOperator == "×") r = a * b;
-        else if (m_pendingOperator == "÷") r = a / b;   // 暂未检查除零（已知问题）
-        m_display = QString::number(r, 'g', 13);
-        m_storedOperand.clear();
-        m_pendingOperator.clear();
+    if (key >= "0" && key <= "9")
+        inputDigit(key);
+    else if (key == ".")
+        inputDot();
+    else if (key == "+" || key == "-" || key == "×" || key == "÷")
+        inputOperator(key);
+    else if (key == "=")
+        calculateEqual();
+    else if (key == "C")
+        clearAll();
+    else if (key == "⌫")
+        backspace();
+    else if (key == "±")
+        toggleSign();
+}
+
+// ---------- 数字输入 ----------
+void MainWindow::inputDigit(const QString &digit)
+{
+    if (m_error)
+        clearAll();                    // 错误状态下按数字：直接开始新的计算
+    if (m_waitingForOperand) {         // 开始输入一个新操作数
+        m_display = digit;
+        m_waitingForOperand = false;
+    } else {
+        // 前导零处理：显示为 0 时再按数字直接替换
+        if (m_display == "0")
+            m_display = digit;
+        else if (m_display.length() < 15)      // 限制输入长度，防止溢出显示
+            m_display += digit;
     }
     refreshDisplay();
 }
 
+// ---------- 小数点输入 ----------
+void MainWindow::inputDot()
+{
+    if (m_error)
+        clearAll();
+    if (m_waitingForOperand) {         // 新操作数直接按小数点：补全为 "0."
+        m_display = QStringLiteral("0.");
+        m_waitingForOperand = false;
+    } else if (!m_display.contains('.')) {
+        // 只有当前操作数还没有小数点时才允许输入，避免 "1.2.3" 这类异常
+        m_display += '.';
+    }
+    refreshDisplay();
+}
+
+// ---------- 操作符输入（+ - × ÷） ----------
+void MainWindow::inputOperator(const QString &op)
+{
+    if (m_error)
+        return;                        // 错误状态下操作符无效，需先按 C 恢复
+    if (!m_pendingOperator.isEmpty() && !m_waitingForOperand) {
+        // 已有两个操作数还按操作符 → 连续运算：先算出前一步结果
+        if (!computeStep())
+            return;
+    } else if (m_pendingOperator.isEmpty()) {
+        m_storedOperand = m_display;   // 记录第一个操作数
+    } else {
+        // pendingOperator 非空且尚未输入第二个操作数 → 连续按操作符，替换之
+    }
+    m_pendingOperator = op;
+    m_waitingForOperand = true;        // 等待第二个操作数
+    refreshDisplay();
+}
+
+// ---------- 等号 ----------
+void MainWindow::calculateEqual()
+{
+    if (m_error)
+        return;
+    if (m_pendingOperator.isEmpty())   // 没有待计算的运算，忽略
+        return;
+    if (m_waitingForOperand)           // 第二个操作数还没输入，忽略
+        return;
+    computeStep();
+    m_pendingOperator.clear();
+    m_waitingForOperand = true;        // 计算完成后：继续按数字 → 新操作数
+                                       //           继续按操作符 → 用结果连算
+    refreshDisplay();
+}
+
+// ---------- 执行一步四则运算 ----------
+bool MainWindow::computeStep()
+{
+    double a = m_storedOperand.toDouble();
+    double b = m_display.toDouble();
+    double r = 0;
+
+    if (m_pendingOperator == "+")  r = a + b;
+    else if (m_pendingOperator == "-") r = a - b;
+    else if (m_pendingOperator == "×") r = a * b;
+    else if (m_pendingOperator == "÷") {
+        if (qFuzzyIsNull(b)) {         // 除零检查：b 为 0 时进入错误状态
+            showError(QStringLiteral("错误：除数不能为零"));
+            return false;
+        }
+        r = a / b;
+    }
+
+    m_display = formatResult(r);
+    m_storedOperand.clear();
+    return true;
+}
+
+// ---------- 退格 ----------
+void MainWindow::backspace()
+{
+    if (m_error || m_waitingForOperand)
+        return;                        // 错误状态/刚出结果时退格无意义
+    m_display.chop(1);
+    if (m_display.isEmpty() || m_display == "-")
+        m_display = QStringLiteral("0");
+    refreshDisplay();
+}
+
+// ---------- 清除全部 ----------
+void MainWindow::clearAll()
+{
+    m_display = QStringLiteral("0");
+    m_storedOperand.clear();
+    m_pendingOperator.clear();
+    m_waitingForOperand = true;
+    m_error = false;
+    refreshDisplay();
+}
+
+// ---------- 正负号 ----------
+void MainWindow::toggleSign()
+{
+    if (m_error || m_waitingForOperand)
+        return;
+    if (m_display.startsWith('-'))
+        m_display.remove(0, 1);
+    else if (m_display != "0")
+        m_display.prepend('-');
+    refreshDisplay();
+}
+
+// ---------- 错误状态 ----------
+void MainWindow::showError(const QString &msg)
+{
+    m_display = msg;
+    m_error = true;
+    refreshDisplay();
+}
+
+// ---------- 结果格式化 ----------
+QString MainWindow::formatResult(double v) const
+{
+    if (std::isnan(v) || std::isinf(v))
+        return QStringLiteral("错误：结果溢出");
+    QString s = QString::number(v, 'g', 13);
+    if (s == "-0")
+        s = QStringLiteral("0");
+    return s;
+}
+
+// ---------- 刷新显示 ----------
 void MainWindow::refreshDisplay()
 {
     ui->lblDisplay->setText(m_display.isEmpty() ? QStringLiteral("0") : m_display);
+    // 历史行提示当前状态：如 "12 + "
+    if (!m_pendingOperator.isEmpty() && !m_error)
+        ui->lblHistory->setText(m_storedOperand + ' ' + m_pendingOperator);
+    else
+        ui->lblHistory->setText(QString());
 }
