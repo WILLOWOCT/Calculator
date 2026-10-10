@@ -17,8 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
     // ===== 布局修正：显示区高度固定，按钮区垂直撑满窗口 =====
     // 原问题：QLabel 默认可无限拉伸、QPushButton 垂直方向固定不伸展，
     // 导致窗口多余的高度全部被显示区占据，按钮挤在下方、上方大片空白。
-    ui->lblHistory->setFixedHeight(26);          // 历史行固定 26px
-    ui->lblDisplay->setFixedHeight(110);         // 主显示行固定 110px
+    ui->lblHistory->setFixedHeight(24);          // 历史行固定 24px
+    ui->lblDisplay->setFixedHeight(96);          // 主显示行固定 96px
     const auto allButtons = findChildren<QPushButton *>();   // 所有按钮垂直方向改为可伸展
     for (QPushButton *btn : allButtons) {
         QSizePolicy sp = btn->sizePolicy();
@@ -32,11 +32,12 @@ MainWindow::MainWindow(QWidget *parent)
     setStyleSheet(QStringLiteral(R"(
         MainWindow { background: #eef1f6; }
         #lblDisplay {
-            font-size: 44px; font-weight: 600; color: #1c1e21;
-            padding-right: 6px;
+            background: #ffffff; border-radius: 12px;
+            font-size: 48px; font-weight: 600; color: #1c1e21;
+            padding-right: 14px;
         }
         #lblHistory {
-            font-size: 15px; color: #90949c; padding-right: 8px;
+            font-size: 15px; color: #90949c; padding-right: 10px;
         }
         QPushButton {
             font-size: 22px; font-weight: 500; color: #1c1e21;
